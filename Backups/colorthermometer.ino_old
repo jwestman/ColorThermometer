@@ -28,8 +28,10 @@ int temperaturePin = 1; // Analog1
 
 // write digits using shift-register
 // 7-segment led A,B,C,D,E,F clockwise from top, G(mid-of-8), H(dot)
-// 0 thru 9 + dot c f   digit-1 = B,C so 01100000=6
-const byte digitBytes[] = { 63, 6, 91, 79, 102, 109, 124, 7, 127, 103, 128, 88, 113, 0 };
+// 0 thru 9   digit-1 = B,C so 01100000=6
+const byte digitBytes[] = { 63, 6, 91, 79, 102, 109, 124, 7, 127, 103 };
+// dot c f
+const byte letterBytes[] = { 128, 88, 113 };
 
 //Pin connected to RCLK / ST_CP of 74HC595
 const int latchPin = 8;
@@ -37,6 +39,7 @@ const int latchPin = 8;
 const int clockPin = 12;
 //Pin connected to SER / DS of 74HC595
 const int dataPin = 11;
+
 
 const byte blueToRed[318][3] = {
   {0,0,0}, {16,16,16}, {0,0,132}, {0,0,131}, {0,0,139}, {0,0,146}, {0,0,145}, {0,0,148}, {0,0,159}, {0,0,158}, {0,0,170}, {0,0,173}, {0,0,172}, {0,0,177}, {0,0,182}, {0,0,181}, 
@@ -76,9 +79,10 @@ void setup() {
   analogReference(INTERNAL);
 
   for (int d=0; d<sizeof(digitBytes); d++) {
-    writeDigit(digitBytes[d], 250);
+    writeDigit(digitBytes[d]);
+    delay(500);
   }
-
+  
   pixels.begin(); // Init NeoPixel library.
   showColors();  
 }
@@ -129,51 +133,16 @@ void loop() {
   }
   pixels.show();
 
-  String fTempStr = String(tempF, 1); // 76.5f
-  writeTempString(fTempStr, 500);
-  String cTempStr = String(tempC, 1) + "c"; //24.7c
-  //writeTempString(cTempStr, 500);
-
-  writeDigit(0, 1); //blank
-  delay(2000);
+  delay(1000);
 }
 
-void writeDigit(byte digitByte, int idelay) {
+void writeDigit(byte digitByte) {
   // take the latchPin low so the LEDs don't change while you're sending in bits
   digitalWrite(latchPin, LOW);
   // shift out the bits
-  shiftOut(dataPin, clockPin, MSBFIRST, digitByte);
+  shiftOut(dataPin, clockPin, LSBFIRST, digitByte);
   //take the latch pin high so the LEDs will light up:
   digitalWrite(latchPin, HIGH);
-  delay(idelay);
-}
-
-void writeTempString(String temp, int idelay) {
-  for (int c=0; c<temp.length(); c++) {
-    byte asciiByte = byte(temp[c]);
-    Serial.println("char=" + String(temp[c]) + " ascii = " + String(asciiByte));
-    // "0" is 48
-    // . is -2
-    // c is 
-
-    switch(asciiByte){
-      case 46:
-        // dot
-        writeDigit(digitBytes[10], idelay); //dot
-        break;
-      case 99:
-        // c
-        writeDigit(digitBytes[11], idelay); //c
-        break;
-      case 102:
-       // f
-        writeDigit(digitBytes[12], idelay);
-        break;
-      default:
-        writeDigit(digitBytes[asciiByte - 48], idelay);
-        break;        
-    } //switch
-  } //for
 }
 
 void showColors() {
